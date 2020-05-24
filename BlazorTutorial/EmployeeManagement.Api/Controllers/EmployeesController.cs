@@ -56,6 +56,27 @@ namespace EmployeeManagement.Api.Controllers
 
         }
 
+        [HttpGet("search")]
+        public async  Task<ActionResult <IEnumerable<Employee>>> Search(string name, Gender? gender) 
+        {
+            try
+            {
+                var result = await employeeRepository.Search(name, gender);
+
+                if (result.Any()) {
+                    return Ok(result);
+                }
+
+                return NotFound();
+
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving data from the database");
+
+            }
+        }
+
         [HttpPost]
         public async Task<ActionResult<Employee>> CreateEmployee(Employee employee)
         {
@@ -67,7 +88,7 @@ namespace EmployeeManagement.Api.Controllers
                     return BadRequest();
                 }
 
-                var emp = employeeRepository.GetEmployeeByEmail(employee.Email);
+                var emp = await  employeeRepository.GetEmployeeByEmail(employee.Email);
 
                 if (emp != null)
                 {
@@ -86,22 +107,18 @@ namespace EmployeeManagement.Api.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<Employee>> UpdateEmployee(int id, Employee employee)
+        [HttpPut]
+        public async Task<ActionResult<Employee>> UpdateEmployee( Employee employee)
         {
 
             try
-            {
-                if (id != employee.EmployeeId)
-                {
-                    return BadRequest("Employee Id mismatch");
-                }
+            {               
 
-                var employeToUpate = await employeeRepository.GetEmployee(id);
+                var employeToUpate = await employeeRepository.GetEmployee(employee.EmployeeId);
 
                 if (employeToUpate == null)
                 {
-                    return NotFound($"Employee with id ={id } not found");
+                    return NotFound($"Employee with id ={employee.EmployeeId } not found");
                 }
 
                 return await employeeRepository.UpdateEmployee(employee);
@@ -113,6 +130,31 @@ namespace EmployeeManagement.Api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error uopdating data");
             }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<Employee>> DeleteEmployee(int id)
+        {
+
+            try
+            {
+                var employeeToDelete = await employeeRepository.GetEmployee(id);
+
+                if (employeeToDelete == null)
+                {
+                    return NotFound($"Employee with id {id } not found ");
+                }
+
+                return await employeeRepository.DeleteEmployee(id);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error deleting data");
+            }
+
+
+        }
+
+
 
     }
 }

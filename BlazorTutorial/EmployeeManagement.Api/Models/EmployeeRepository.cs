@@ -1,9 +1,8 @@
 ﻿using EmployeeManagement.Models;
-using System;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeManagement.Api.Models
 {
@@ -23,19 +22,23 @@ namespace EmployeeManagement.Api.Models
 
         }
 
-        public async void DeleteEmployee(int employeeId)
+        public async Task<Employee> DeleteEmployee(int employeeId)
         {
             var result = await appDbContext.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
 
             if (result != null) {
                 appDbContext.Employees.Remove(result);
                 await appDbContext.SaveChangesAsync();
+                return result;
             }
+            return null;
         }
 
         public async Task<Employee> GetEmployee(int employeeId)
         {
-            return  await appDbContext.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+            return  await appDbContext.Employees
+                .Include(e => e.Department)
+                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
 
         }
 
@@ -49,6 +52,28 @@ namespace EmployeeManagement.Api.Models
             return await appDbContext.Employees.ToListAsync();
         }
 
+
+        public async Task<IEnumerable<Employee>> Search(string name, Gender? gender)
+        {
+            IQueryable<Employee> queryResult = appDbContext.Employees;
+
+            if(!string.IsNullOrEmpty(name))
+            {
+                queryResult = queryResult.Where(e => e.FirstName.Contains(name) || e.LastName.Contains(name));
+
+            }
+
+            if (gender != null)
+            {
+                queryResult = queryResult.Where(e => e.Gender == gender);
+            }
+
+            return await queryResult.ToListAsync();
+
+
+        }
+
+
         public async Task<Employee> UpdateEmployee(Employee employee)
         {
             var result = await appDbContext.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employee.EmployeeId);
@@ -60,7 +85,7 @@ namespace EmployeeManagement.Api.Models
                 result.Email = employee.Email;
                 result.DateOfBirth = employee.DateOfBirth;
                 result.Gender = employee.Gender;
-                result.DepartmentId = employee.DepartmentId;
+                result.Department.DepartmentId = employee.Department.DepartmentId;
                 result.PhotoPath = employee.PhotoPath;
 
 
